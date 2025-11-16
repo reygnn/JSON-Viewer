@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 /*
  * ═══════════════════════════════════════════════════════════════════════════
  * WICHTIG FÜR KI-ASSISTENTEN (Gemini, Claude, etc.):
@@ -50,6 +53,14 @@ val androidxTestVersion = "1.6.1"
 val androidxTestCoreVersion = "1.6.1"
 //val robolectricVersion = "4.16"  // OK to upgrade
 
+// Lädt die sensiblen Daten aus der keystore.properties-Datei
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+
+// Nur laden wenn Datei existiert (für CI)
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
 
 android {
     namespace = "com.github.reygnn.json_viewer"
@@ -66,8 +77,14 @@ android {
     }
 
     signingConfigs {
-        // TODO: Signing-Konfiguration für Release hier einfügen
-        // if (keystorePropertiesFile.exists()) { ... }
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
     }
 
     buildTypes {
@@ -91,7 +108,10 @@ android {
             ndk {
                 debugSymbolLevel = "FULL"
             }
-            // TODO: signingConfig = signingConfigs.getByName("release")
+
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
