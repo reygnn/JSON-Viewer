@@ -1,7 +1,5 @@
 package com.github.reygnn.json_viewer.di
 
-package com.github.reygnn.json_viewer.di
-
 import com.github.reygnn.json_viewer.data.repository.JsonRepositoryImpl
 import com.github.reygnn.json_viewer.domain.repository.JsonRepository
 import dagger.Binds

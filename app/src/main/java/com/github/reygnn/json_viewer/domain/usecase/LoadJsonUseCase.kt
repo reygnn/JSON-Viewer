@@ -1,7 +1,5 @@
 package com.github.reygnn.json_viewer.domain.usecase
 
-package com.github.reygnn.json_viewer.domain.usecase
-
 import android.net.Uri
 import com.github.reygnn.json_viewer.domain.repository.JsonRepository
 import javax.inject.Inject

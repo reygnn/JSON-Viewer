@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">JSON-Viewer</string>
+
+    <string name="open_file">Datei öffnen</string>
+
+    <string name="empty_view_text">Tippe auf das Ordner-Symbol, um eine Datei zu öffnen</string>
 </resources>
