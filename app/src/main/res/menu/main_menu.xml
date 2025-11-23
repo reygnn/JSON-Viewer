@@ -5,6 +5,8 @@
         android:id="@+id/action_open_file"
         android:title="@string/open_file"
         android:icon="@drawable/ic_open_file"
+        
+        app:iconTint="?attr/colorOnSurface"
+        
         app:showAsAction="ifRoom" />
 </menu>
-
