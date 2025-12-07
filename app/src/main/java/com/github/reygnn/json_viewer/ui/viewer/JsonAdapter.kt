@@ -10,8 +10,10 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.R as MaterialR
 import androidx.appcompat.R as AppCompatR
+import com.github.reygnn.json_viewer.core.parser.JsonTokenizer
 import com.github.reygnn.json_viewer.databinding.ItemJsonLineBinding
 import com.github.reygnn.json_viewer.domain.model.JsonLine
+import com.github.reygnn.json_viewer.domain.model.TokenType
 import com.google.android.material.color.MaterialColors
 
 class JsonAdapter : ListAdapter<JsonLine, JsonAdapter.JsonViewHolder>(JsonDiffCallback()) {
@@ -27,42 +29,30 @@ class JsonAdapter : ListAdapter<JsonLine, JsonAdapter.JsonViewHolder>(JsonDiffCa
 
     class JsonViewHolder(private val binding: ItemJsonLineBinding) : RecyclerView.ViewHolder(binding.root) {
 
-        private val keyColor = MaterialColors.getColor(binding.root, AppCompatR.attr.colorPrimary)
-        private val stringColor = MaterialColors.getColor(binding.root, MaterialR.attr.colorTertiary)
-        private val numberColor = MaterialColors.getColor(binding.root, AppCompatR.attr.colorError)
+        private val tokenizer = JsonTokenizer()
+
         private val defaultColor = MaterialColors.getColor(binding.root, MaterialR.attr.colorOnSurface)
+
+        private val colors = mapOf(
+            TokenType.KEY to MaterialColors.getColor(binding.root, AppCompatR.attr.colorPrimary),
+            TokenType.STRING to MaterialColors.getColor(binding.root, MaterialR.attr.colorTertiary),
+            TokenType.NUMBER to MaterialColors.getColor(binding.root, AppCompatR.attr.colorError),
+            TokenType.BOOLEAN to MaterialColors.getColor(binding.root, AppCompatR.attr.colorError),
+            TokenType.NULL to MaterialColors.getColor(binding.root, AppCompatR.attr.colorError)
+        )
 
         fun bind(line: String) {
             val spannable = SpannableString(line)
 
-            KEY_REGEX.findAll(line).forEach { match ->
-                spannable.setSpan(
-                    ForegroundColorSpan(keyColor),
-                    match.range.first,
-                    match.range.last,
-                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-            }
-
-            STRING_REGEX.findAll(line).forEach { match ->
-                val isKey = (match.range.last + 1 < line.length && line[match.range.last + 1] == ':')
-                if (!isKey) {
+            tokenizer.tokenize(line).forEach { token ->
+                colors[token.type]?.let { color ->
                     spannable.setSpan(
-                        ForegroundColorSpan(stringColor),
-                        match.range.first,
-                        match.range.last + 1,
+                        ForegroundColorSpan(color),
+                        token.start,
+                        token.end,
                         Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
                     )
                 }
-            }
-
-            LITERAL_REGEX.findAll(line).forEach { match ->
-                spannable.setSpan(
-                    ForegroundColorSpan(numberColor),
-                    match.range.first,
-                    match.range.last + 1,
-                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
             }
 
             binding.lineText.text = spannable
@@ -76,11 +66,5 @@ class JsonAdapter : ListAdapter<JsonLine, JsonAdapter.JsonViewHolder>(JsonDiffCa
 
         override fun areContentsTheSame(oldItem: JsonLine, newItem: JsonLine) =
             oldItem == newItem
-    }
-
-    companion object {
-        private val KEY_REGEX = "\"[^\"]+\":".toRegex()
-        private val STRING_REGEX = "\"[^\"]+\"".toRegex()
-        private val LITERAL_REGEX = "\\b(true|false|null|-?\\d+(\\.\\d+)?([eE][+-]?\\d+)?)\\b".toRegex()
     }
 }

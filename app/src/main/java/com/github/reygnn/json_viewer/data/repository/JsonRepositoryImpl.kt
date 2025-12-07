@@ -13,8 +13,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import java.io.IOException
 import javax.inject.Inject
 
 class JsonRepositoryImpl @Inject constructor(
@@ -22,58 +21,53 @@ class JsonRepositoryImpl @Inject constructor(
     private val dispatchers: CoroutineDispatchers
 ) : JsonRepository {
 
+    companion object {
+        private const val MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024L
+    }
+
     override suspend fun loadAndFormatJson(uri: Uri): Resource<JsonData> {
         return withContext(dispatchers.io) {
             try {
-                // 1. Datei-Metadaten lesen (Name & Größe)
                 val metaData = getFileMetaData(uri)
 
-                // 2. Inhalt lesen
+                if (metaData.second > MAX_FILE_SIZE_BYTES) {
+                    return@withContext Resource.Error(
+                        "Datei zu groß (${metaData.second / 1024 / 1024} MB). Maximum: 10 MB"
+                    )
+                }
+
                 val jsonString = readTextFromUri(uri)
 
-                // 3. Parsen und Formatieren (4 Spaces Einrückung)
-                // Wir nutzen JSONTokener, um zu erkennen, ob es ein Objekt {} oder Array [] ist
                 val tokener = JSONTokener(jsonString)
                 val value = tokener.nextValue()
 
                 val formattedJsonString = when (value) {
                     is JSONObject -> value.toString(4)
                     is JSONArray -> value.toString(4)
-                    else -> throw IllegalArgumentException("Datei enthält kein gültiges JSON-Objekt oder -Array")
+                    else -> throw IllegalArgumentException("Kein gültiges JSON-Objekt oder -Array")
                 }
 
-                // 4. WICHTIG: String in eine Liste von Zeilen umwandeln für den RecyclerView!
                 val jsonLinesList = formattedJsonString.lines()
                     .mapIndexed { index, content -> JsonLine(index, content) }
 
-                // 5. JsonData erstellen
                 Resource.Success(
                     JsonData(
                         fileName = metaData.first,
                         fileSize = metaData.second,
-                        jsonLines = jsonLinesList // <-- Hier übergeben wir die Liste
+                        jsonLines = jsonLinesList
                     )
                 )
 
             } catch (e: Exception) {
-                e.printStackTrace()
                 Resource.Error("Fehler beim Laden/Parsen: ${e.localizedMessage}")
             }
         }
     }
 
     private fun readTextFromUri(uri: Uri): String {
-        val stringBuilder = StringBuilder()
-        context.contentResolver.openInputStream(uri)?.use { inputStream ->
-            BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                var line: String? = reader.readLine()
-                while (line != null) {
-                    stringBuilder.append(line)
-                    line = reader.readLine()
-                }
-            }
-        }
-        return stringBuilder.toString()
+        return context.contentResolver.openInputStream(uri)?.use {
+            it.bufferedReader().readText().trimStart('\uFEFF')
+        } ?: throw IOException("Konnte Stream nicht öffnen")
     }
 
     private fun getFileMetaData(uri: Uri): Pair<String, Long> {
