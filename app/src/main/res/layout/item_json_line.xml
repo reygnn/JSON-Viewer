@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.textview.MaterialTextView 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/lineText"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="0dp"
+    android:textAppearance="?attr/textAppearanceBodyMedium"
+    android:fontFamily="monospace"
+    android:textColor="?attr/colorOnSurface"
+    android:includeFontPadding="false"
+    tools:text="  &quot;key&quot;: &quot;value&quot;" />

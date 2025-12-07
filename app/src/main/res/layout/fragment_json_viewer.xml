@@ -28,29 +28,20 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/jsonContentScrollview"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/jsonRecyclerView"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:scrollbars="vertical"
+        android:clipToPadding="false"
+        android:paddingBottom="16dp"
+        android:paddingTop="8dp"
         android:visibility="gone"
-        tools:visibility="visible"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintTop_toBottomOf="@id/appBarLayout"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/jsonContent"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="16dp"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="?attr/colorOnSurface"
-            android:typeface="monospace"
-            android:textIsSelectable="true"
-            tools:text="{ \n  &quot;key&quot;: &quot;value&quot; \n }" />
-
-    </androidx.core.widget.NestedScrollView>
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <com.google.android.material.progressindicator.CircularProgressIndicator
         android:id="@+id/progressBar"

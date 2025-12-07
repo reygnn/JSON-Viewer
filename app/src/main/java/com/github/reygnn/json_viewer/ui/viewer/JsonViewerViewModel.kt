@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
-// UI-State für das Fragment
+// Der State hält jetzt JsonData, welches die Liste der Zeilen beinhaltet
 data class JsonViewerUiState(
     val isLoading: Boolean = false,
     val jsonData: JsonData? = null,
@@ -30,38 +30,53 @@ class JsonViewerViewModel @Inject constructor(
     val uiState: StateFlow<JsonViewerUiState> = _uiState.asStateFlow()
 
     fun loadJsonFromUri(uri: Uri) {
+        // launchSafe kommt aus deinem BaseViewModel und fängt Crashes ab
         launchSafe {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            // 1. Ladezustand setzen
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, jsonData = null) }
 
+            // 2. UseCase aufrufen (Dieser liest File -> Formatiert JSON -> Splittet in Liste)
             when (val result = loadJsonUseCase(uri)) {
                 is Resource.Success -> {
                     _uiState.update {
-                        it.copy(isLoading = false, jsonData = result.data)
+                        it.copy(
+                            isLoading = false,
+                            jsonData = result.data, // Hier ist jetzt die List<String> drin
+                            errorMessage = null
+                        )
                     }
                 }
                 is Resource.Error -> {
                     _uiState.update {
-                        it.copy(isLoading = false, jsonData = null, errorMessage = result.message)
+                        it.copy(
+                            isLoading = false,
+                            jsonData = null,
+                            errorMessage = result.message ?: "Unbekannter Fehler beim Laden"
+                        )
                     }
                 }
                 is Resource.Loading -> {
-                    // Wird hier nicht verwendet, da wir den Ladezustand manuell setzen
+                    // Optional: Falls der UseCase Zwischenstände sendet
                 }
             }
         }
     }
 
     /**
-     * Überschreibt die handleError-Methode der BaseViewModel,
-     * um Fehler im UI-State zu setzen.
+     * Wird aufgerufen, wenn im launchSafe Block eine Exception fliegt,
+     * die nicht durch Resource.Error abgefangen wurde.
      */
     override fun handleError(throwable: Throwable) {
         _uiState.update {
             it.copy(
                 isLoading = false,
-                jsonData = null,
-                errorMessage = "Kritischer Fehler: ${throwable.message}"
+                errorMessage = "Kritischer Fehler: ${throwable.localizedMessage}"
             )
         }
+    }
+
+    // Optional: Methode um Error-Message zurückzusetzen, nachdem Snackbar angezeigt wurde
+    fun onErrorShown() {
+        _uiState.update { it.copy(errorMessage = null) }
     }
 }

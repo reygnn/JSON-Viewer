@@ -6,83 +6,90 @@ import android.provider.OpenableColumns
 import com.github.reygnn.json_viewer.core.dispatchers.CoroutineDispatchers
 import com.github.reygnn.json_viewer.core.util.Resource
 import com.github.reygnn.json_viewer.domain.model.JsonData
+import com.github.reygnn.json_viewer.domain.model.JsonLine
 import com.github.reygnn.json_viewer.domain.repository.JsonRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import timber.log.Timber
+import org.json.JSONArray
+import org.json.JSONObject
+import org.json.JSONTokener
 import java.io.BufferedReader
 import java.io.InputStreamReader
-import java.nio.charset.StandardCharsets
 import javax.inject.Inject
 
 class JsonRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val dispatchers: CoroutineDispatchers,
-    private val jsonParser: Json // Von AppModule bereitgestellt
+    private val dispatchers: CoroutineDispatchers
 ) : JsonRepository {
 
-    private data class FileDetails(val name: String, val size: Long)
+    override suspend fun loadAndFormatJson(uri: Uri): Resource<JsonData> {
+        return withContext(dispatchers.io) {
+            try {
+                // 1. Datei-Metadaten lesen (Name & Größe)
+                val metaData = getFileMetaData(uri)
 
-    override suspend fun loadAndFormatJson(uri: Uri): Resource<JsonData> = withContext(dispatchers.io) {
-        // Deine "crash-sichere" Philosophie: Alles in try-catch(Throwable)
-        try {
-            val contentResolver = context.contentResolver
+                // 2. Inhalt lesen
+                val jsonString = readTextFromUri(uri)
 
-            // 1. Datei-Details (Name, Größe) sicher abrufen
-            val details = getFileDetails(uri)
-                ?: return@withContext Resource.Error("Konnte Dateidetails nicht laden.")
+                // 3. Parsen und Formatieren (4 Spaces Einrückung)
+                // Wir nutzen JSONTokener, um zu erkennen, ob es ein Objekt {} oder Array [] ist
+                val tokener = JSONTokener(jsonString)
+                val value = tokener.nextValue()
 
-            // 2. Datei-Inhalt sicher lesen
-            val rawJsonString = contentResolver.openInputStream(uri)?.use { inputStream ->
-                BufferedReader(InputStreamReader(inputStream, StandardCharsets.UTF_8)).use { reader ->
-                    reader.readText()
+                val formattedJsonString = when (value) {
+                    is JSONObject -> value.toString(4)
+                    is JSONArray -> value.toString(4)
+                    else -> throw IllegalArgumentException("Datei enthält kein gültiges JSON-Objekt oder -Array")
                 }
-            } ?: return@withContext Resource.Error("Konnte Datei nicht öffnen.")
 
-            if (rawJsonString.isBlank()) {
-                return@withContext Resource.Error("Datei ist leer.")
+                // 4. WICHTIG: String in eine Liste von Zeilen umwandeln für den RecyclerView!
+                val jsonLinesList = formattedJsonString.lines()
+                    .mapIndexed { index, content -> JsonLine(index, content) }
+
+                // 5. JsonData erstellen
+                Resource.Success(
+                    JsonData(
+                        fileName = metaData.first,
+                        fileSize = metaData.second,
+                        jsonLines = jsonLinesList // <-- Hier übergeben wir die Liste
+                    )
+                )
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Resource.Error("Fehler beim Laden/Parsen: ${e.localizedMessage}")
             }
-
-            // 3. JSON parsen und neu formatieren (Pretty Print)
-            val jsonElement = jsonParser.decodeFromString<JsonElement>(rawJsonString)
-            val formattedJson = jsonParser.encodeToString(JsonElement.serializer(), jsonElement)
-
-            val jsonData = JsonData(
-                fileName = details.name,
-                formattedJson = formattedJson,
-                fileSize = details.size
-            )
-            Resource.Success(jsonData)
-
-        } catch (e: Throwable) {
-            // Fängt alles ab (SerializationException, IOException, SecurityException, OutOfMemoryError, etc.)
-            Timber.e(e, "Fehler beim Laden/Parsen von JSON: $uri")
-            Resource.Error("Fehler beim Parsen: ${e.javaClass.simpleName} - ${e.message}")
         }
     }
 
-    private fun getFileDetails(uri: Uri): FileDetails? {
-        return try {
-            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-
-                    val name = if (nameIndex != -1) cursor.getString(nameIndex) else "unbekannt.json"
-                    val size = if (sizeIndex != -1) cursor.getLong(sizeIndex) else 0L
-
-                    FileDetails(name, size)
-                } else {
-                    null
+    private fun readTextFromUri(uri: Uri): String {
+        val stringBuilder = StringBuilder()
+        context.contentResolver.openInputStream(uri)?.use { inputStream ->
+            BufferedReader(InputStreamReader(inputStream)).use { reader ->
+                var line: String? = reader.readLine()
+                while (line != null) {
+                    stringBuilder.append(line)
+                    line = reader.readLine()
                 }
             }
-        } catch (e: Throwable) {
-            Timber.w(e, "Konnte Dateidetails nicht abrufen")
-            // Fallback: Dateiname aus URI extrahieren (weniger zuverlässig)
-            val name = uri.lastPathSegment ?: "unbekannt.json"
-            FileDetails(name, 0L)
         }
+        return stringBuilder.toString()
+    }
+
+    private fun getFileMetaData(uri: Uri): Pair<String, Long> {
+        var name = "Unknown.json"
+        var size = 0L
+
+        val cursor = context.contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                val sizeIndex = it.getColumnIndex(OpenableColumns.SIZE)
+
+                if (nameIndex != -1) name = it.getString(nameIndex)
+                if (sizeIndex != -1) size = it.getLong(sizeIndex)
+            }
+        }
+        return Pair(name, size)
     }
 }
