@@ -22,8 +22,8 @@ android {
         applicationId = "com.github.reygnn.json_viewer"
         minSdk = 36
         targetSdk = 36
-        versionCode = 17
-        versionName = "0.4.0"
+        versionCode = 18
+        versionName = "0.5.0"
     }
 
     signingConfigs {
