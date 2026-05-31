@@ -1,12 +1,12 @@
 package com.github.reygnn.json_viewer.ui.util
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.reygnn.json_viewer.core.dispatchers.CoroutineDispatchers
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import timber.log.Timber
 
 /**
  * Eine vereinfachte, crash-sichere BaseViewModel,
@@ -17,7 +17,7 @@ abstract class BaseViewModel(
 ) : ViewModel() {
 
     private val coroutineExceptionHandler = CoroutineExceptionHandler { context, throwable ->
-        Timber.e(throwable, "Unbehandelte Exception im ViewModel: $context")
+        Log.e(TAG, "Unbehandelte Exception im ViewModel: $context", throwable)
         handleError(throwable)
     }
 
@@ -29,7 +29,7 @@ abstract class BaseViewModel(
             try {
                 block()
             } catch (t: Throwable) {
-                Timber.e(t, "Fehler in launchSafe-Block")
+                Log.e(TAG, "Fehler in launchSafe-Block", t)
                 handleError(t)
             }
         }
@@ -41,6 +41,10 @@ abstract class BaseViewModel(
      */
     protected open fun handleError(throwable: Throwable) {
         // Standard-Implementierung loggt nur
-        Timber.e(throwable, "BaseViewModel handleError")
+        Log.e(TAG, "BaseViewModel handleError", throwable)
+    }
+
+    private companion object {
+        const val TAG = "BaseViewModel"
     }
 }
