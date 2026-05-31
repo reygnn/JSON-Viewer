@@ -48,7 +48,7 @@ class JsonViewerViewModel(
                         it.copy(
                             isLoading = false,
                             jsonData = null,
-                            errorMessage = result.message ?: "Unbekannter Fehler beim Laden"
+                            errorMessage = result.message
                         )
                     }
                 }
