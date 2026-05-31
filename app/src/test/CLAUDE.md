@@ -10,22 +10,16 @@ philosophy (JVM-only by default, pure logic outside Android-runtime classes,
 MockK only — no Mockito) come from `~/.claude/CLAUDE.md`. This file only
 records the project's choices on top of that baseline.
 
-> **Migration note (2026-05-31):** this describes the **target** test
-> layout. Today the set holds only the scaffold `ExampleUnitTest.kt`, the
-> production code still uses Hilt/Mockito, and an `androidTest` source set
-> (Espresso) still exists. Phase 4 of the migration ports to MockK, builds
-> out the suite below, and deletes the `androidTest` set. Until then,
-> "What exists" is the destination, not the current count.
-
 ---
 
-## What exists (target layout)
+## What exists
 
 Mirrors the production package layout:
 
 ```
+MainDispatcherRule.kt           — sets Dispatchers.Main = UnconfinedTestDispatcher
 core/parser/
-  JsonTokenizerTest.kt          — pure JVM, table-driven over TokenType
+  JsonTokenizerTest.kt          — pure JVM, lexer types + spans
 data/repository/
   JsonRepositoryImplTest.kt     — Robolectric (android.net.Uri,
                                   ContentResolver, OpenableColumns);
@@ -34,11 +28,10 @@ data/repository/
 ui/viewer/
   JsonViewerViewModelTest.kt    — Turbine for loading → success/error
                                   transitions; MainDispatcherRule
-util/
-  MainDispatcherRule.kt         — sets Dispatchers.Main = UnconfinedTestDispatcher
+  JsonHighlighterTest.kt        — pure JVM, tokens → AnnotatedString spans
 ```
 
-All run via `./gradlew testDebugUnitTest`.
+24 tests, all run via `./gradlew testDebugUnitTest`.
 
 ---
 
@@ -48,9 +41,9 @@ Generic defaults (no Hilt test infra, no androidTest unless instrumented
 behaviour matters) are inherited from `~/.claude/CLAUDE.md`. Project-
 specific call-outs:
 
-- **No `androidTest`/instrumented set (post-migration).** The legacy
-  Espresso + `HiltTestRunner` androidTest set is removed in Phase 4 — the
-  viewer has no instrumented behaviour worth a device. Don't recreate it.
+- **No `androidTest`/instrumented set.** The legacy Espresso +
+  `HiltTestRunner` set was removed — the viewer has no instrumented
+  behaviour worth a device. Don't recreate it.
 - **No DataStore/persistence test infra.** The app has no persistence
   layer; the DataStore section in `TESTING_CONVENTIONS.kt` is inert.
 - **No contract tests.** One repository implementation; a fake/impl split

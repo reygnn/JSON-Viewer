@@ -159,12 +159,6 @@ Not needed in a pure Compose app:
 Concretisations for this repo. When porting the rules to another app,
 replace this part.
 
-> **Migration note:** Part B describes the **target** Compose theme. The
-> app currently still ships an XML/`com.google.android.material` theme with
-> the legacy `md_theme_*` colour resources in `res/values/colors.xml`.
-> Those map 1:1 onto the Compose `ColorScheme` below and are retired with
-> the UI migration (Phase 5).
-
 ## B1. Semantic role assignments
 
 Brand is a teal/cyan scheme (`primary` ≈ `#006A6A` light / `#4CDADA` dark).

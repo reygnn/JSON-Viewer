@@ -1,19 +1,29 @@
 package com.github.reygnn.json_viewer.ui
 
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.WindowCompat
-import com.github.reygnn.json_viewer.R
-import com.github.reygnn.json_viewer.databinding.ActivityMainBinding
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.reygnn.json_viewer.JsonViewModelFactory
+import com.github.reygnn.json_viewer.JsonViewerApplication
+import com.github.reygnn.json_viewer.ui.theme.JsonViewerTheme
+import com.github.reygnn.json_viewer.ui.viewer.JsonViewerScreen
+import com.github.reygnn.json_viewer.ui.viewer.JsonViewerViewModel
 
-class MainActivity : AppCompatActivity() {
-
-    private lateinit var binding: ActivityMainBinding
+class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContent {
+            JsonViewerTheme {
+                val app = application as JsonViewerApplication
+                val viewModel: JsonViewerViewModel = viewModel(
+                    factory = JsonViewModelFactory(app.loadJsonUseCase, app.dispatchers),
+                )
+                JsonViewerScreen(viewModel = viewModel)
+            }
+        }
     }
 }

@@ -13,14 +13,6 @@ Cross-project conventions (stack baseline, git workflow, test philosophy,
 code language) live in `~/.claude/CLAUDE.md` and are loaded automatically.
 This file only holds what is specific to this project.
 
-> **Migration note (2026-05-31):** this file describes the **target**
-> baseline state. The project is mid-migration from its legacy stack
-> (XML/Fragments/RecyclerView, Hilt, Mockito, Timber, JDK 17, AGP 8,
-> external Kotlin plugin) to the family baseline (Compose + Material 3,
-> manual DI, MockK, `android.util.Log`, JDK 21, AGP 9 built-in Kotlin).
-> Where the code still contradicts this file, the code is the thing that
-> moves. Remove this note once the migration phases are complete.
-
 ---
 
 ## Scope
@@ -77,8 +69,8 @@ domain/
 data/
   repository/  JsonRepositoryImpl — file read + size guard + pretty-print
 ui/
-  viewer/      JsonViewerViewModel (+ UiState) and the Compose screen
-  theme/        ColorScheme + token highlight constants (post-migration)
+  viewer/      JsonViewerViewModel (+ UiState), JsonViewerScreen, JsonHighlighter
+  theme/       ColorScheme + JsonTokenColors highlight constants
 ```
 
 Data flow: SAF `Uri` → `LoadJsonUseCase(uri)` → `JsonRepository.loadAndFormatJson`
@@ -87,9 +79,9 @@ Data flow: SAF `Uri` → `LoadJsonUseCase(uri)` → `JsonRepository.loadAndForma
 into `JsonViewerUiState` (`StateFlow`) → the screen renders each line and
 calls `JsonTokenizer` for highlight spans.
 
-DI is manual through the `Application` class (target state — Hilt is being
-removed). The `CoroutineDispatchers` interface is the dispatcher injection
-seam for tests.
+DI is manual through the `Application` class (`JsonViewerApplication` builds
+the graph; `JsonViewModelFactory` injects the ViewModel). The
+`CoroutineDispatchers` interface is the dispatcher injection seam for tests.
 
 ---
 
