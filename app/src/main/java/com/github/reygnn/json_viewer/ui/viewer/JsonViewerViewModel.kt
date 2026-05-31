@@ -6,12 +6,10 @@ import com.github.reygnn.json_viewer.core.util.Resource
 import com.github.reygnn.json_viewer.domain.model.JsonData
 import com.github.reygnn.json_viewer.domain.usecase.LoadJsonUseCase
 import com.github.reygnn.json_viewer.ui.util.BaseViewModel
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import javax.inject.Inject
 
 // Der State hält jetzt JsonData, welches die Liste der Zeilen beinhaltet
 data class JsonViewerUiState(
@@ -20,8 +18,7 @@ data class JsonViewerUiState(
     val errorMessage: String? = null
 )
 
-@HiltViewModel
-class JsonViewerViewModel @Inject constructor(
+class JsonViewerViewModel(
     private val loadJsonUseCase: LoadJsonUseCase,
     dispatchers: CoroutineDispatchers
 ) : BaseViewModel(dispatchers) {

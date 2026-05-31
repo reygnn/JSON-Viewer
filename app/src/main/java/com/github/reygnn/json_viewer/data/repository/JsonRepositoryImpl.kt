@@ -8,16 +8,14 @@ import com.github.reygnn.json_viewer.core.util.Resource
 import com.github.reygnn.json_viewer.domain.model.JsonData
 import com.github.reygnn.json_viewer.domain.model.JsonLine
 import com.github.reygnn.json_viewer.domain.repository.JsonRepository
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
 import java.io.IOException
-import javax.inject.Inject
 
-class JsonRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context,
+class JsonRepositoryImpl(
+    private val context: Context,
     private val dispatchers: CoroutineDispatchers
 ) : JsonRepository {
 

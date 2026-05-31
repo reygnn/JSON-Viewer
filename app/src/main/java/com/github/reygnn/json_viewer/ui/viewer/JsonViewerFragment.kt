@@ -14,20 +14,23 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.github.reygnn.json_viewer.JsonViewModelFactory
+import com.github.reygnn.json_viewer.JsonViewerApplication
 import com.github.reygnn.json_viewer.R
 import com.github.reygnn.json_viewer.databinding.FragmentJsonViewerBinding
 import com.google.android.material.snackbar.Snackbar
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlin.math.roundToLong
 
-@AndroidEntryPoint
 class JsonViewerFragment : Fragment() {
 
     private var _binding: FragmentJsonViewerBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: JsonViewerViewModel by viewModels()
+    private val viewModel: JsonViewerViewModel by viewModels {
+        val app = requireActivity().application as JsonViewerApplication
+        JsonViewModelFactory(app.loadJsonUseCase, app.dispatchers)
+    }
 
     // NEU: Der Adapter für die Syntax-Highlighting Liste
     private val jsonAdapter = JsonAdapter()

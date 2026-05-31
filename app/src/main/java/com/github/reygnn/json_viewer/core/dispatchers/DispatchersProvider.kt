@@ -2,11 +2,8 @@ package com.github.reygnn.json_viewer.core.dispatchers
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class DispatchersProvider @Inject constructor() : CoroutineDispatchers {
+class DispatchersProvider : CoroutineDispatchers {
     override val main: CoroutineDispatcher
         get() = Dispatchers.Main
     override val io: CoroutineDispatcher
