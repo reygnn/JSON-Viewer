@@ -37,6 +37,15 @@ import com.github.reygnn.json_viewer.domain.model.JsonLine
 import com.github.reygnn.json_viewer.ui.theme.LocalJsonTokenColors
 import kotlin.math.roundToLong
 
+// Plain JSON plus Kolibri's zipped exports. "octet-stream" is included
+// because providers often report .zip / .json that way; the real type is
+// then detected by content in the repository.
+private val OPEN_MIME_TYPES = arrayOf(
+    "application/json",
+    "application/zip",
+    "application/octet-stream",
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JsonViewerScreen(viewModel: JsonViewerViewModel) {
@@ -78,7 +87,7 @@ fun JsonViewerScreen(viewModel: JsonViewerViewModel) {
                     }
                 },
                 actions = {
-                    IconButton(onClick = { openDocument.launch(arrayOf("application/json")) }) {
+                    IconButton(onClick = { openDocument.launch(OPEN_MIME_TYPES) }) {
                         Icon(
                             imageVector = Icons.Outlined.FileOpen,
                             contentDescription = stringResource(R.string.open_file),
