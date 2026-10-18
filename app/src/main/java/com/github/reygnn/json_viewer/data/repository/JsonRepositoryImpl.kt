@@ -12,11 +12,9 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
-import java.util.zip.ZipInputStream
 
 class JsonRepositoryImpl(
     private val context: Context,
@@ -70,58 +68,19 @@ class JsonRepositoryImpl(
     }
 
     /**
-     * Reads the JSON text from the picked file. A plain `.json` is read
-     * directly; a ZIP (Kolibri now exports zipped JSON) is unpacked and its
-     * JSON entry returned. Detection is by content (the ZIP magic bytes), not
-     * by file name / MIME, since SAF content URIs rarely carry a reliable one.
+     * Reads the picked file as UTF-8 text, size-capped and with a leading BOM
+     * stripped.
      */
     private fun readJsonText(uri: Uri): String {
         val bytes = context.contentResolver.openInputStream(uri)?.use { input ->
             readCapped(input) { "Datei zu groß. Maximum: 10 MB" }
         } ?: throw IOException("Konnte Stream nicht öffnen")
-
-        val text = if (looksLikeZip(bytes)) {
-            extractJsonFromZip(bytes)
-        } else {
-            String(bytes, Charsets.UTF_8)
-        }
-        return text.trimStart(Char(0xFEFF))
-    }
-
-    private fun looksLikeZip(bytes: ByteArray): Boolean =
-        bytes.size >= ZIP_MAGIC.size && ZIP_MAGIC.indices.all { bytes[it] == ZIP_MAGIC[it] }
-
-    /**
-     * Picks the JSON out of a ZIP: the first entry whose name ends in `.json`
-     * (case-insensitive), or — if none is named that way — the first file
-     * entry. Each entry is read through [readCapped] so a zip bomb can't blow
-     * past the size limit.
-     */
-    private fun extractJsonFromZip(bytes: ByteArray): String {
-        ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
-            var fallback: ByteArray? = null
-            var entry = zip.nextEntry
-            while (entry != null) {
-                if (!entry.isDirectory) {
-                    val name = entry.name.substringAfterLast('/')
-                    if (name.endsWith(".json", ignoreCase = true)) {
-                        return String(readCapped(zip) { "Entpackte JSON zu groß. Maximum: 10 MB" }, Charsets.UTF_8)
-                    }
-                    if (fallback == null) {
-                        fallback = readCapped(zip) { "Entpackter Eintrag zu groß. Maximum: 10 MB" }
-                    }
-                }
-                zip.closeEntry()
-                entry = zip.nextEntry
-            }
-            return fallback?.let { String(it, Charsets.UTF_8) }
-                ?: throw IllegalArgumentException("Keine Datei im ZIP-Archiv gefunden")
-        }
+        return String(bytes, Charsets.UTF_8).trimStart(Char(0xFEFF))
     }
 
     /**
      * Reads [input] fully into memory but refuses to exceed [MAX_FILE_SIZE_BYTES]
-     * — guards both unknown-size sources and zip-bomb decompression.
+     * — guards sources that report no (or a wrong) size up front.
      */
     private fun readCapped(input: InputStream, message: () -> String): ByteArray {
         val out = ByteArrayOutputStream()

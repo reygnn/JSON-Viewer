@@ -22,10 +22,6 @@ Framework; the app reads it, pretty-prints it, and renders it line by line.
 A per-line tokenizer drives syntax highlighting (keys, strings, numbers,
 booleans, null, punctuation each get their own colour).
 
-The picked file may be a plain `.json` **or a ZIP** containing one (Kolibri
-exports zipped JSON). The file type is detected by content (ZIP magic
-bytes), not by name/MIME — SAF content URIs rarely carry a reliable one.
-
 Deliberately **not** in scope without explicit user agreement:
 
 - Editing or writing JSON back out — this is a viewer, not an editor.
@@ -52,11 +48,9 @@ SDK 36, JDK 21, JUnit 4 + MockK + Turbine, manual DI, `android.util.Log`):
 - **No persistence layer** — no SharedPreferences, no DataStore, no Room.
   Nothing to store; the viewer holds state only in the ViewModel.
 - **SAF for file access** — `ActivityResultContracts.OpenDocument` filtered
-  to `application/json` + `application/zip` + `application/octet-stream`, no
-  runtime storage permissions.
-- **`java.util.zip` for ZIP input** — `JsonRepositoryImpl` unpacks a zipped
-  JSON in-process (no extra dependency). Reads are size-capped to guard
-  against zip bombs and unknown-size sources.
+  to `application/json` + `application/octet-stream`, no runtime storage
+  permissions. Reads are size-capped to guard against sources that report
+  no (or a wrong) size.
 
 ---
 
@@ -82,8 +76,7 @@ ui/
 ```
 
 Data flow: SAF `Uri` → `LoadJsonUseCase(uri)` → `JsonRepository.loadAndFormatJson`
-(on `dispatchers.io`: read file → 10 MB size guard → unzip if it is a ZIP →
-`org.json` pretty-print → split into `List<JsonLine>`) → `Resource<JsonData>`
+(on `dispatchers.io`: read file → 10 MB size guard → `org.json` pretty-print → split into `List<JsonLine>`) → `Resource<JsonData>`
 → ViewModel folds it
 into `JsonViewerUiState` (`StateFlow`) → the screen renders each line and
 calls `JsonTokenizer` for highlight spans.
@@ -97,7 +90,7 @@ the graph; `JsonViewModelFactory` injects the ViewModel). The
 ## Hard rules
 
 1. **`JsonRepositoryImpl` is the single source of truth for loading.** The
-   10 MB size guard, file-metadata lookup, ZIP detection/extraction, and
+   10 MB size guard, file-metadata lookup, and
    pretty-printing live there — not in the ViewModel or the use case.
 2. **The tokenizer works per line, never on the whole document.** Large
    files are split first; highlighting one line at a time keeps it

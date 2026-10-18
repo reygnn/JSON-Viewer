@@ -37,12 +37,9 @@ import com.github.reygnn.json_viewer.domain.model.JsonLine
 import com.github.reygnn.json_viewer.ui.theme.LocalJsonTokenColors
 import kotlin.math.roundToLong
 
-// Plain JSON plus Kolibri's zipped exports. "octet-stream" is included
-// because providers often report .zip / .json that way; the real type is
-// then detected by content in the repository.
+// "octet-stream" is included because some providers report .json that way.
 private val OPEN_MIME_TYPES = arrayOf(
     "application/json",
-    "application/zip",
     "application/octet-stream",
 )
 
