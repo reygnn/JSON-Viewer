@@ -18,7 +18,9 @@ This file only holds what is specific to this project.
 ## Scope
 
 A read-only JSON viewer. The user picks a file through the Storage Access
-Framework; the app reads it, pretty-prints it, and renders it line by line.
+Framework, or opens one from another app ("Open with" — an `ACTION_VIEW`
+filter for `application/json` / `text/json`, so the viewer can be set as the
+default JSON handler); the app reads it, pretty-prints it, and renders it line by line.
 A per-line tokenizer drives syntax highlighting (keys, strings, numbers,
 booleans, null, punctuation each get their own colour).
 
@@ -75,7 +77,8 @@ ui/
   theme/       ColorScheme + JsonTokenColors highlight constants
 ```
 
-Data flow: SAF `Uri` → `LoadJsonUseCase(uri)` → `JsonRepository.loadAndFormatJson`
+Data flow: SAF `Uri` (or an `ACTION_VIEW` `content://` URI, handled in
+`MainActivity` — `singleTop`, so `onNewIntent` reuses the open viewer) → `LoadJsonUseCase(uri)` → `JsonRepository.loadAndFormatJson`
 (on `dispatchers.io`: read file → 10 MB size guard → `org.json` pretty-print → split into `List<JsonLine>`) → `Resource<JsonData>`
 → ViewModel folds it
 into `JsonViewerUiState` (`StateFlow`) → the screen renders each line and
