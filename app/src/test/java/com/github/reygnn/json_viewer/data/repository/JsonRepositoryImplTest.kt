@@ -2,25 +2,25 @@ package com.github.reygnn.json_viewer.data.repository
 
 import android.content.Context
 import android.net.Uri
-import android.provider.OpenableColumns
 import androidx.test.core.app.ApplicationProvider
 import com.github.reygnn.json_viewer.core.dispatchers.CoroutineDispatchers
 import com.github.reygnn.json_viewer.core.util.Resource
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import org.robolectric.fakes.RoboCursor
-import java.io.ByteArrayInputStream
 
 /**
  * Robolectric is required here: the repository reads through a real
  * [android.content.ContentResolver] (openInputStream + OpenableColumns
- * query). Pure-JVM mocking of ContentResolver/Uri would be theatre.
+ * query), backed by [FakeDocumentProvider]. Pure-JVM mocking of
+ * ContentResolver/Uri would be theatre.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -34,20 +34,17 @@ class JsonRepositoryImplTest {
         override val default = Dispatchers.Unconfined
     }
 
+    @get:Rule
+    val tempFolder = TemporaryFolder()
+
     private val repository = JsonRepositoryImpl(context, dispatchers)
     private val uri: Uri = Uri.parse("content://test/sample.json")
 
-    private fun stub(content: String, name: String = "sample.json", size: Long = content.toByteArray().size.toLong()) =
-        stubRaw(content.toByteArray(), name, size)
-
-    private fun stubRaw(bytes: ByteArray, name: String = "sample.json", size: Long = bytes.size.toLong()) {
-        val resolver = context.contentResolver
-        shadowOf(resolver).registerInputStream(uri, ByteArrayInputStream(bytes))
-
-        val cursor = RoboCursor()
-        cursor.setColumnNames(listOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE))
-        cursor.setResults(arrayOf(arrayOf<Any>(name, size)))
-        shadowOf(resolver).setCursor(uri, cursor)
+    private fun stub(content: String, name: String = "sample.json", size: Long = content.toByteArray().size.toLong()) {
+        val provider = Robolectric.setupContentProvider(FakeDocumentProvider::class.java, "test")
+        provider.file = tempFolder.newFile().apply { writeBytes(content.toByteArray()) }
+        provider.name = name
+        provider.size = size
     }
 
     @Test
